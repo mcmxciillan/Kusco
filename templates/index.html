@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KUSCO: Clinician Chat</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+        <div class="main-container">
+            <div class="note-list-container" id="note-list-container">
+                <div class="note-header">
+                    <h3>Saved Notes</h3>
+                    <button class="create-note-btn" onclick="showCreateNoteDropdown()">Create Note</button>
+                </div>
+                <div id="note-list"></div>
+            </div>
+            <div class="chat-container">
+                <h1>KUSCO: Clinician Chat</h1>
+                <div class="selected-patient" id="selected-patient-name">Select a Patient</div>
+                <div class="tab-container">
+                    <button class="tab-button active" onclick="switchTab('chat')">Chat</button>
+                    <button class="tab-button" onclick="switchTab('notes')">Notes</button>
+                    <button class="tab-button" onclick="switchTab('survey')">Survey</button>
+                    <button class="tab-button" onclick="switchTab('keywords')">Keywords</button>
+                    <button class="tab-button" onclick="switchTab('statistics')">Statistics</button>
+                    <button class="tab-button" onclick="switchTab('goals')">Goals</button>
+                    <button class="tab-button" onclick="switchTab('timeline')">Timeline</button>
+                    <button class="tab-button" onclick="switchTab('resources')">Resources</button>
+                </div>
+                <div class="content-container">
+                    <div id="chat-content" class="tab-content active">
+                        <div class="history-container" id="history"></div>
+                        <div class="input-container">
+                            <input type="text" id="message" placeholder="Type your message">
+                            <button onclick="sendMessage()">Send</button>
+                        </div>
+                    </div>
+                    <div id="notes-content" class="tab-content">
+                        <div class="note-display" id="note-display"></div>
+                        <button id="edit-note" style="display: none;" onclick="editNote()">Edit Note</button>
+                        <button id="save-note" style="display: none;" onclick="saveNote()">Save Note</button>
+                        <textarea id="edit-response" style="display: none;"></textarea>
+                    </div>
+                    <div id="survey-content" class="tab-content">
+                        <div class="survey-display" id="survey-display">Select a patient to view surveys</div>
+                    </div>
+                    <div id="keywords-content" class="tab-content">
+                        <div class="keywords-display" id="keywords-display">Select a patient to view keywords</div>
+                    </div>
+                    <div id="statistics-content" class="tab-content">
+                        <div class="statistics-display" id="statistics-display">Select a patient to view statistics</div>
+                    </div>
+                    <div id="goals-content" class="tab-content">
+                        <div class="goals-display" id="goals-display">Select a patient to view goals</div>
+                    </div>
+                    <div id="timeline-content" class="tab-content">
+                        <div class="timeline-display" id="timeline-display">Select a patient to view timeline</div>
+                    </div>
+                    <div id="resources-content" class="tab-content">
+                        <div class="resources-display" id="resources-display">Select a patient to view resources</div>
+                    </div>
+                </div>
+            </div>
+            <div class="patient-list-container" id="patient-list">
+                <div class="patient-header">
+                    <h3>Patients</h3>
+                    <button class="add-patient-btn" onclick="showAddPatientInput()">+</button>
+                </div>
+                <ul id="patient-list-ul">
+                </ul>
+            </div>
+        </div>
+        <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    </body>
+</html>
