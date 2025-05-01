@@ -64,7 +64,11 @@ ollama pull llama3
 
 You can use other models supported by Ollama as well.
 
-### 4. Run the Application
+### 4. Input Chosen Model in query function
+
+- Place the model you have chosen to download in this file [here](https://github.com/mcmxciillan/Kusco/blob/main/query.py#L6)
+
+### 5. Run the Application
 
 ```bash
 python app.py
