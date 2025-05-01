@@ -19,7 +19,7 @@ This project is a Flask-based web application for clinicians to chat with an AI 
 ### 1. Clone the Repository
 
 ```bash
-[git clone https://github.com/yourusername/kusco.git](https://github.com/mcmxciillan/Kusco.git)
+git clone https://github.com/mcmxciillan/Kusco.git
 cd kusco
 ```
 
