@@ -1,0 +1,313 @@
+/* Basic Reset & App Structure */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f4f7f6;
+  color: #333;
+  height: 100%;
+  overflow: hidden; /* Prevent body scroll when app shell handles scrolling */
+}
+
+#root, .app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-body {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden; /* Important for independent scrolling of sidebar/main content */
+}
+
+/* HeaderBar */
+.header-bar {
+  background-color: #2c3e50;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+.header-bar h1 {
+  margin: 0;
+  font-size: 1.5em;
+}
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ClientSidebar */
+.client-sidebar {
+  width: 280px; /* Or your desired fixed width */
+  background-color: #f0f2f5; /* Light grey background */
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #d1d5db; /* Subtle border */
+  height: calc(100vh - 60px); /* Adjust based on header height */
+  overflow-y: auto;
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+}
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.sidebar-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937; /* Darker grey for text */
+}
+.search-bar {
+  margin-bottom: 15px;
+}
+.client-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db; /* Consistent border */
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box; /* Important for width calculation */
+}
+.client-search-input:focus {
+  outline: none;
+  border-color: #3b82f6; /* Blue border on focus */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.client-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1; /* Allows list to take available space */
+}
+.client-list-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px; /* Consistent padding */
+  margin-bottom: 8px; /* Space between items */
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  width: 100%; /* Ensure full width usage */
+  text-align: left;
+  background-color: #ffffff; /* White background for items */
+  border: none; /* Remove default button border */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+}
+.client-list-item:hover {
+  background-color: #e5e7eb; /* Slightly darker on hover */
+}
+.client-list-item.selected {
+  background-color: #3b82f6; /* Blue background for selected */
+  color: white;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+.client-list-item.selected .client-name,
+.client-list-item.selected .last-session {
+  color: white; /* Ensure text is white when selected */
+}
+.client-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+  border: 1px solid #d1d5db;
+}
+.client-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Allow info to take remaining space */
+  overflow: hidden; /* Prevent text overflow issues */
+}
+.client-name {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #1f2937;
+  white-space: nowrap; /* Prevent name from wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Add ellipsis if name is too long */
+}
+.last-session {
+  font-size: 0.8rem;
+  color: #6b7280; /* Lighter grey for secondary text */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loading-indicator {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* MainContentArea & TabNavigation - more styles will be needed */
+.main-content-area {
+  flex-grow: 1;
+  padding: 20px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Allow main content to scroll */
+  min-width: 0; /* Allow content area to shrink properly with flexbox */
+}
+
+.tab-navigation {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #bdc3c7;
+  padding-bottom: 10px;
+}
+.tab-button {
+  padding: 10px 15px;
+  margin-right: 5px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 1em;
+  color: #7f8c8d;
+}
+.tab-button.active {
+  color: #3498db;
+  border-bottom: 2px solid #3498db;
+  font-weight: bold;
+}
+
+.tab-content-wrapper {
+  flex-grow: 1;
+  /* Add styling for specific tab views here or in their own CSS */
+}
+
+.main-content-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #7f8c8d;
+  font-size: 1.2em;
+}
+
+/* ConversationView specific styles - basic */
+.conversation-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Try to make it fill available space */
+}
+.chat-display {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+}
+.message-bubble {
+  padding: 8px 12px;
+  border-radius: 15px;
+  margin-bottom: 8px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+.message-user {
+  background-color: #3498db;
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 5px;
+}
+.message-ai {
+  background-color: #e0e0e0;
+  color: #333;
+  margin-right: auto;
+  border-bottom-left-radius: 5px;
+}
+.message-system {
+  font-style: italic;
+  color: #7f8c8d;
+  text-align: center;
+  font-size: 0.9em;
+}
+.message-timestamp {
+  display: block;
+  font-size: 0.75em;
+  margin-top: 4px;
+  text-align: right;
+  opacity: 0.7;
+}
+.message-user .message-timestamp {
+ color: #ecf0f1;
+}
+
+.note-input-area {
+  display: flex;
+  margin-bottom: 10px;
+}
+.note-input-area textarea {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical; /* Allow vertical resize */
+  min-height: 60px;
+}
+.note-input-area button {
+  margin-left: 10px;
+  padding: 10px 15px;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.note-input-area button:disabled {
+  background-color: #95a5a6;
+}
+
+.action-buttons button {
+  margin-right: 10px;
+  padding: 8px 12px;
+  /* Add more styling */
+}
+
+.placeholder-text {
+  color: #7f8c8d;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.note-type-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  min-width: 120px;
+  margin-top: 4px;
+}
+
+.note-type-option {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.15s;
+}
+
+.note-type-option:hover, .note-type-option:focus {
+  background: #f0f2f5;
+  outline: none;
+}

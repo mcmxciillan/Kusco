@@ -1,330 +1,293 @@
+from contextlib import contextmanager
+import os
 import sqlite3
 from datetime import datetime
 
 # Database file
-DB_FILE = "clinician_chat.db"
+DB_FILE = os.getenv("DB_FILE", "clinician_chat.db")
 
 
 def init_db():
     """Initialize the database with all required tables."""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    with open("schema.sql", "r") as f:
+        schema_sql = f.read()
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.executescript(schema_sql)
 
-    # Patients table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Chat history table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            user_message TEXT,
-            model_response TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    # Notes table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS notes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            note_type TEXT,
-            content TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    # Surveys table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS surveys (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            survey_type TEXT,
-            responses TEXT,
-            total_score INTEGER,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            notes TEXT,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    # Keywords table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS keywords (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            keyword TEXT,
-            frequency INTEGER DEFAULT 0,
-            contexts TEXT,
-            category TEXT,
-            last_mentioned DATETIME,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    # Diagnoses table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS diagnoses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            diagnosis TEXT,
-            likelihood REAL,
-            evidence TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    # Goals table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS goals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            description TEXT,
-            metric TEXT,
-            target_value TEXT,
-            current_value TEXT,
-            deadline DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            completed INTEGER DEFAULT 0,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    # Resources table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS resources (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER,
-            title TEXT,
-            type TEXT,
-            content TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES patients(id)
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
+# a contextmanager is a generator function that yields a value and can be used with the 'with' statement
+# it allows for setup and teardown code to be executed around a block of code
+# this is useful for managing resources like database connections, file handles, etc.
+# it ensures that the resource is properly cleaned up after use, even if an error occurs
 
 
+@contextmanager
 def get_db_connection():
-    """Return a database connection."""
+    """Yield a database connection as a context manager."""
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries
-    return conn
+    try:
+        yield conn
+    except Exception as e:
+        logging.error("Error occurred while using database connection: %s", e)
+        raise
+    finally:
+        conn.close()
 
 # Patient operations
 
 
 def add_patient(name):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO patients (name) VALUES (?)", (name,))
-    conn.commit()
-    patient_id = c.lastrowid
-    conn.close()
-    return patient_id
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO patients (name) VALUES (?)", (name,))
+            conn.commit()
+            patient_id = c.lastrowid
+        return patient_id
+    except Exception as e:
+        print(f"Error adding patient: {e}")
+        return None
 
 
 def get_patients():
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM patients ORDER BY created_at")
-    patients = c.fetchall()
-    conn.close()
-    return [{"id": p["id"], "name": p["name"]} for p in patients]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT * FROM patients ORDER BY created_at")
+            patients = c.fetchall()
+        return [{"id": p["id"], "name": p["name"]} for p in patients]
+    except Exception as e:
+        print(f"Error retrieving patients: {e}")
+        return []
 
 
 def rename_patient(patient_id, new_name):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("UPDATE patients SET name = ? WHERE id = ?",
-              (new_name, patient_id))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("UPDATE patients SET name = ? WHERE id = ?",
+                      (new_name, patient_id))
+            conn.commit()
+    except Exception as e:
+        print(f"Error renaming patient: {e}")
 
 # Chat history operations
 
 
 def add_chat_entry(patient_id, user_message, model_response):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO chat_history (patient_id, user_message, model_response) VALUES (?, ?, ?)",
-              (patient_id, user_message, model_response))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO chat_history (patient_id, user_message, model_response) VALUES (?, ?, ?)",
+                      (patient_id, user_message, model_response))
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding chat entry: {e}")
 
 
 def get_chat_history(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM chat_history WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
-    history = c.fetchall()
-    conn.close()
-    return [{"id": h["id"], "user": h["user_message"], "model": h["model_response"], "timestamp": h["timestamp"]} for h in history]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM chat_history WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
+            history = c.fetchall()
+        # Use keys expected by the frontend
+        return [{
+            "id": h["id"],
+            "user_message": h["user_message"],
+            "model_response": h["model_response"],
+            "timestamp": h["timestamp"]
+        } for h in history]
+    except Exception as e:
+        print(f"Error retrieving chat history: {e}")
+        return []
 
 # Notes operations
 
 
 def add_note(patient_id, note_type, content):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO notes (patient_id, note_type, content) VALUES (?, ?, ?)",
-              (patient_id, note_type, content))
-    conn.commit()
-    note_id = c.lastrowid
-    conn.close()
-    return note_id
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO notes (patient_id, note_type, content) VALUES (?, ?, ?)",
+                      (patient_id, note_type, content))
+            conn.commit()
+            note_id = c.lastrowid
+        return note_id
+    except Exception as e:
+        print(f"Error adding note: {e}")
+        return None
 
 
 def get_notes(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM notes WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
-    notes = c.fetchall()
-    conn.close()
-    return [{"id": n["id"], "note_type": n["note_type"], "content": n["content"], "timestamp": n["timestamp"]} for n in notes]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM notes WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
+            notes = c.fetchall()
+        return [{"id": n["id"], "note_type": n["note_type"], "content": n["content"], "timestamp": n["timestamp"]} for n in notes]
+    except Exception as e:
+        print(f"Error retrieving notes: {e}")
+        return []
 
 
 def get_note(note_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
-    note = c.fetchone()
-    conn.close()
-    return {"id": note["id"], "note_type": note["note_type"], "content": note["content"], "timestamp": note["timestamp"]} if note else None
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+            note = c.fetchone()
+        return {"id": note["id"], "note_type": note["note_type"], "content": note["content"], "timestamp": note["timestamp"]} if note else None
+    except Exception as e:
+        print(f"Error retrieving note: {e}")
+        return None
 
 # Survey operations (placeholder)
 
 
 def add_survey(patient_id, survey_type, responses, total_score, notes=""):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO surveys (patient_id, survey_type, responses, total_score, notes) VALUES (?, ?, ?, ?, ?)",
-              (patient_id, survey_type, responses, total_score, notes))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO surveys (patient_id, survey_type, responses, total_score, notes) VALUES (?, ?, ?, ?, ?)",
+                      (patient_id, survey_type, responses, total_score, notes))
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding survey: {e}")
 
 
 def get_surveys(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM surveys WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
-    surveys = c.fetchall()
-    conn.close()
-    return [{"id": s["id"], "survey_type": s["survey_type"], "responses": s["responses"],
-             "total_score": s["total_score"], "timestamp": s["timestamp"], "notes": s["notes"]} for s in surveys]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM surveys WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
+            surveys = c.fetchall()
+        return [{"id": s["id"], "survey_type": s["survey_type"], "responses": s["responses"],
+                 "total_score": s["total_score"], "timestamp": s["timestamp"], "notes": s["notes"]} for s in surveys]
+    except Exception as e:
+        print(f"Error retrieving surveys: {e}")
+        return []
 
 # Keywords operations (placeholder)
 
 
 def add_keyword(patient_id, keyword, contexts, category=None):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM keywords WHERE patient_id = ? AND keyword = ?",
-              (patient_id, keyword))
-    existing = c.fetchone()
-    if existing:
-        frequency = existing["frequency"] + 1
-        updated_contexts = existing["contexts"] + "," + \
-            contexts if existing["contexts"] else contexts
-        c.execute("UPDATE keywords SET frequency = ?, contexts = ?, last_mentioned = ? WHERE id = ?",
-                  (frequency, updated_contexts, datetime.now(), existing["id"]))
-    else:
-        c.execute("INSERT INTO keywords (patient_id, keyword, frequency, contexts, category, last_mentioned) VALUES (?, ?, 1, ?, ?, ?)",
-                  (patient_id, keyword, contexts, category, datetime.now()))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("SELECT * FROM keywords WHERE patient_id = ? AND keyword = ?",
+                      (patient_id, keyword))
+            existing = c.fetchone()
+            if existing:
+                frequency = existing["frequency"] + 1
+                updated_contexts = existing["contexts"] + "," + \
+                    contexts if existing["contexts"] else contexts
+                c.execute("UPDATE keywords SET frequency = ?, contexts = ?, last_mentioned = ? WHERE id = ?",
+                          (frequency, updated_contexts, datetime.now(), existing["id"]))
+            else:
+                c.execute("INSERT INTO keywords (patient_id, keyword, frequency, contexts, category, last_mentioned) VALUES (?, ?, 1, ?, ?, ?)",
+                          (patient_id, keyword, contexts, category, datetime.now()))
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding keyword: {e}")
 
 
 def get_keywords(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM keywords WHERE patient_id = ? ORDER BY frequency DESC", (patient_id,))
-    keywords = c.fetchall()
-    conn.close()
-    return [{"id": k["id"], "keyword": k["keyword"], "frequency": k["frequency"], "contexts": k["contexts"],
-             "category": k["category"], "last_mentioned": k["last_mentioned"]} for k in keywords]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM keywords WHERE patient_id = ? ORDER BY frequency DESC", (patient_id,))
+            keywords = c.fetchall()
+        return [{"id": k["id"], "keyword": k["keyword"], "frequency": k["frequency"], "contexts": k["contexts"],
+                 "category": k["category"], "last_mentioned": k["last_mentioned"]} for k in keywords]
+    except Exception as e:
+        print(f"Error retrieving keywords: {e}")
+        return []
 
 # Diagnoses operations (placeholder)
 
 
 def add_diagnosis(patient_id, diagnosis, likelihood, evidence):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO diagnoses (patient_id, diagnosis, likelihood, evidence) VALUES (?, ?, ?, ?)",
-              (patient_id, diagnosis, likelihood, evidence))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO diagnoses (patient_id, diagnosis, likelihood, evidence) VALUES (?, ?, ?, ?)",
+                      (patient_id, diagnosis, likelihood, evidence))
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding diagnosis: {e}")
 
 
 def get_diagnoses(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM diagnoses WHERE patient_id = ? ORDER BY timestamp DESC", (patient_id,))
-    diagnoses = c.fetchall()
-    conn.close()
-    return [{"id": d["id"], "diagnosis": d["diagnosis"], "likelihood": d["likelihood"],
-             "evidence": d["evidence"], "timestamp": d["timestamp"]} for d in diagnoses]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM diagnoses WHERE patient_id = ? ORDER BY timestamp DESC", (patient_id,))
+            diagnoses = c.fetchall()
+        return [{"id": d["id"], "diagnosis": d["diagnosis"], "likelihood": d["likelihood"],
+                 "evidence": d["evidence"], "timestamp": d["timestamp"]} for d in diagnoses]
+    except Exception as e:
+        print(f"Error retrieving diagnoses: {e}")
+        return []
 
 # Goals operations (placeholder)
 
 
 def add_goal(patient_id, description, metric, target_value, deadline):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO goals (patient_id, description, metric, target_value, deadline) VALUES (?, ?, ?, ?, ?)",
-              (patient_id, description, metric, target_value, deadline))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO goals (patient_id, description, metric, target_value, deadline) VALUES (?, ?, ?, ?, ?)",
+                      (patient_id, description, metric, target_value, deadline))
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding goal: {e}")
 
 
 def get_goals(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM goals WHERE patient_id = ? ORDER BY created_at", (patient_id,))
-    goals = c.fetchall()
-    conn.close()
-    return [{"id": g["id"], "description": g["description"], "metric": g["metric"], "target_value": g["target_value"],
-             "current_value": g["current_value"], "deadline": g["deadline"], "completed": g["completed"]} for g in goals]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM goals WHERE patient_id = ? ORDER BY created_at", (patient_id,))
+            goals = c.fetchall()
+        return [{"id": g["id"], "description": g["description"], "metric": g["metric"], "target_value": g["target_value"],
+                 "current_value": g["current_value"], "deadline": g["deadline"], "completed": g["completed"]} for g in goals]
+    except Exception as e:
+        print(f"Error retrieving goals: {e}")
+        return []
 
 # Resources operations (placeholder)
 
 
 def add_resource(patient_id, title, resource_type, content):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO resources (patient_id, title, type, content) VALUES (?, ?, ?, ?)",
-              (patient_id, title, resource_type, content))
-    conn.commit()
-    conn.close()
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO resources (patient_id, title, type, content) VALUES (?, ?, ?, ?)",
+                      (patient_id, title, resource_type, content))
+            conn.commit()
+    except Exception as e:
+        print(f"Error adding resource: {e}")
 
 
 def get_resources(patient_id):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "SELECT * FROM resources WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
-    resources = c.fetchall()
-    conn.close()
-    return [{"id": r["id"], "title": r["title"], "type": r["type"], "content": r["content"],
-             "timestamp": r["timestamp"]} for r in resources]
+    try:
+        with get_db_connection() as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT * FROM resources WHERE patient_id = ? ORDER BY timestamp", (patient_id,))
+            resources = c.fetchall()
+        return [{"id": r["id"], "title": r["title"], "type": r["type"], "content": r["content"],
+                 "timestamp": r["timestamp"]} for r in resources]
+    except Exception as e:
+        print(f"Error retrieving resources: {e}")
+        return []
 
 
 if __name__ == "__main__":

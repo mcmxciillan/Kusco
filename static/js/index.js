@@ -252,58 +252,13 @@ function createNote(noteType) {
     })
     .then(response => {
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let fullContent = '';
-
-        function readStream() {
-            reader.read()
-            .then(({ done, value }) => {
-                if (done) {
-                    try {
-                        // Parse the accumulated JSON content
-                        const jsonContent = JSON.parse(fullContent);
-                        // Render the JSON content with the appropriate template
-                        fetch('/note_template', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ note_type: noteType, content: jsonContent })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            noteDisplay.innerHTML = data.html_content;
-                            isCreatingNote = false;
-                            loadNoteList();
-                        })
-                        .catch(error => {
-                            console.error("Error rendering note template:", error);
-                            noteDisplay.textContent = "Error rendering note.";
-                            isCreatingNote = false;
-                            loadNoteList();
-                        });
-                    } catch (error) {
-                        console.error("Error parsing JSON:", error);
-                        noteDisplay.textContent = "Invalid note format.";
-                        isCreatingNote = false;
-                        loadNoteList();
-                    }
-                    return;
-                }
-                const chunk = decoder.decode(value, { stream: true });
-                fullContent += chunk;
-                noteDisplay.textContent = "Generating note...\n" + fullContent; // Show progress
-                readStream();
-            })
-            .catch(error => {
-                console.error("Error reading stream:", error);
-                noteDisplay.textContent = "An error occurred.";
-                isCreatingNote = false;
-                isViewingNote = false;
-                updateButtonVisibility();
-                loadNoteList();
-            });
-        }
-        readStream();
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) throw new Error(data.error);
+        noteDisplay.innerHTML = data.model_response;
+        isCreatingNote = false;
+        loadNoteList();
     })
     .catch(error => {
         console.error("Error generating note:", error);

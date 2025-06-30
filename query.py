@@ -1,21 +1,22 @@
-from intents import classify_intent
 from prompts import PROMPTS
 from ollama_client import send_to_ollama
 
 
-def query_model(user_input, model="mistral:7b", stream=True):
+def query_model(user_input, model="gemma3:12b"):
     """
-    Queries the Ollama model using the appropriate prompt based on the user's intent.
+    Queries the Ollama model using the appropriate prompt for mental health assistance.
 
     Args:
         user_input (str): The input from the user.
-        model (str): The name of the model to use (default: "mistral:7b").
-        stream (bool): Whether to stream the response (default: False).
+        model (str): The name of the model to use (default: "gemma3:12b").
 
     Returns:
         str or generator: The model's response. If streaming, returns a generator.
     """
-    intent = classify_intent()
-    prompt = PROMPTS.get(intent["prompt_key"], "")
+    default_prompt_key = "mental_health_assistant"
+    prompt = PROMPTS.get(default_prompt_key)
+    if not prompt:
+        raise ValueError("Missing prompt for 'mental_health_assistant'")
+
     full_query = f"{prompt}\n\nUser: {user_input}"
-    return send_to_ollama(full_query, model=model, stream=stream)
+    return send_to_ollama(full_query, model=model)
