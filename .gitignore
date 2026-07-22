@@ -1,11 +1,27 @@
-**/*/node_modules
-**/*/build
-**/*/dist
-**/*/coverage
-**/*/lib
-**/*/out
-**/*/tmp
-**/*/temp
-**/*/logs
-**/*/log
-**/*/.vscode
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+/kusco-ui/node_modules
+
+# testing
+/coverage
+/playwright-report/
+/test-results/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+
+# env files
+.env*
+!.env.example
