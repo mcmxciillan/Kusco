@@ -1,19 +1,22 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-test("redirects to login page", async ({ page }) => {
+test("renders landing page and navigates to login page", async ({ page }) => {
   await page.goto("/");
-  
-  // Verify redirected to login
+
+  // Verify landing page title
+  const heading = page.locator("h1");
+  await expect(heading).toContainText("Reclaim");
+
+  // Click Sign In link
+  await page.click("text=Sign In");
+
+  // Verify navigated to login
   await expect(page).toHaveURL(/.*login/);
 
-  // Verify form has heading
-  const heading = page.locator("h1");
-  await expect(heading).toContainText("Kusco");
-
-  // Verify inputs exist
+  // Verify inputs exist on login page
   const emailInput = page.locator("input#email");
   await expect(emailInput).toBeVisible();
-  
+
   const passwordInput = page.locator("input#password");
   await expect(passwordInput).toBeVisible();
 });
